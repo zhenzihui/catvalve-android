@@ -17,7 +17,7 @@ import java.util.logging.Logger
 
 class BtActivity : AppCompatActivity() {
 
-    private val _bd: ActivityBtBinding? = null
+    private var _bd: ActivityBtBinding? = null
     val bd get() = _bd!!
 
     private var _btUtil: BluetoothUtil? = null
@@ -25,16 +25,7 @@ class BtActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-
-
-        _btUtil = BluetoothUtil(this)
-        setContentView(R.layout.activity_bt)
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
-        }
-        btUtil.turnOnBT()
+        _bd = ActivityBtBinding.inflate(layoutInflater)
 
         bd.startServiceButton.setOnClickListener {
             Intent(this, CameraValveActivity::class.java)
@@ -42,6 +33,16 @@ class BtActivity : AppCompatActivity() {
                     startActivity(this)
                 }
         }
+        _btUtil = BluetoothUtil(this)
+        setContentView(bd.root)
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+            insets
+        }
+        btUtil.turnOnBT()
+
+
 
 
     }
