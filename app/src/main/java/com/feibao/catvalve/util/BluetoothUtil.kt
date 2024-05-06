@@ -5,6 +5,7 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
+import android.bluetooth.BluetoothSocket
 import android.companion.AssociationRequest
 import android.companion.BluetoothDeviceFilter
 import android.companion.CompanionDeviceManager
@@ -17,6 +18,8 @@ import androidx.core.app.ActivityCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.IOException
 import java.util.UUID
 
 const val REQUEST_ENABLE_BT = 11
@@ -60,23 +63,26 @@ class BluetoothUtil(private val context: Context) {
     }
 
     @SuppressLint("MissingPermission")
-    fun connectDevice(address: String) {
+    fun connectDevice(address: String, onFailed: ((Throwable) -> Unit)? = null, onConnected: (BluetoothSocket) -> Unit) {
         val btDevice = adapter!!.getRemoteDevice(address)
-//        if(!isBluetoothPermitted) {
-//            return
-//        }
+
         val socket = btDevice.createRfcommSocketToServiceRecord(LocalData.sppUUID)
 
         CoroutineScope(Dispatchers.IO)
             .launch {
-                socket.connect()
+                runCatching {
+                    socket.connect()
 
-                val ips = socket.inputStream
-                val ops = socket.outputStream
-
-                ops.write(byteArrayOf('1'.code.toByte()))
-
-
+                    withContext(Dispatchers.Main) {
+                        if(socket.isConnected) {
+                            onConnected.invoke(socket)
+                        } else {
+                            throw IOException("连接失败")
+                        }
+                    }
+                }.onFailure {
+                    onFailed?.invoke(it)
+                }
             }
 
 

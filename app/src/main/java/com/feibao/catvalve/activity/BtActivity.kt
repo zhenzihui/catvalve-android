@@ -2,15 +2,19 @@ package com.feibao.catvalve.activity
 
 import android.app.Activity
 import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothSocket
 import android.companion.CompanionDeviceManager
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.View
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
 import com.feibao.catvalve.CameraValveActivity
 import com.feibao.catvalve.R
 import com.feibao.catvalve.databinding.ActivityBtBinding
@@ -26,10 +30,13 @@ class BtActivity : AppCompatActivity() {
 
     private var _btUtil: BluetoothUtil? = null
     private val btUtil get() = _btUtil!!
+
+    val vm: BtViewModel by viewModels()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         _bd = ActivityBtBinding.inflate(layoutInflater)
+
 
 
         bd.startServiceButton.setOnClickListener {
@@ -48,8 +55,17 @@ class BtActivity : AppCompatActivity() {
         btUtil.turnOnBT()
         setButtons()
         bd.bindDeviceButton.setOnClickListener {
-            btUtil.showPairDevice()
+            if(vm.bleAddr.value.isNullOrBlank()) {
+                btUtil.showPairDevice()
+            } else {
+                btUtil.connectDevice(LocalData.deviceAddr!! ) {
+                    vm.socket.value = it
+                    vm.bleAddr.value = LocalData.deviceAddr
+                }
+            }
         }
+        //尝试链接蓝牙
+        vm.connectBle(btUtil)
 
 
 
@@ -87,23 +103,52 @@ class BtActivity : AppCompatActivity() {
                 data?.getParcelableExtra(CompanionDeviceManager.EXTRA_DEVICE)
 
             val address = deviceToPair!!.address
-
-            btUtil.connectDevice(address)
-            setButtons()
+            LocalData.deviceAddr = address
+            vm.bleAddr.value = address
+            vm.connectBle(btUtil)
 
         }
 
     }
     fun setButtons() {
-        if(LocalData.deviceAddr.isNullOrBlank()) {
-            bd.bindDeviceButton.visibility = View.VISIBLE
-            bd.startServiceButton.visibility = View.INVISIBLE
-            bd.setScheduleButton.visibility = View.INVISIBLE
-        } else {
-            bd.bindDeviceButton.visibility = View.INVISIBLE
-            bd.startServiceButton.visibility = View.VISIBLE
-            bd.setScheduleButton.visibility = View.VISIBLE
+        vm.socket.observe(this) {
+            if(it == null || !it.isConnected) {
+                bd.bindDeviceButton.visibility = View.VISIBLE
+                bd.startServiceButton.visibility = View.INVISIBLE
+                bd.setScheduleButton.visibility = View.INVISIBLE
+            } else {
+                bd.bindDeviceButton.visibility = View.INVISIBLE
+                bd.startServiceButton.visibility = View.VISIBLE
+                bd.setScheduleButton.visibility = View.VISIBLE
+            }
         }
 
+
     }
+}
+
+
+class BtViewModel: ViewModel() {
+    //连接中
+    val connecting = MutableLiveData<Boolean>().apply { value=false }
+
+    val socket = MutableLiveData<BluetoothSocket>().apply { value=null }
+    val bleAddr = MutableLiveData<String>().apply { value=LocalData.deviceAddr }
+
+
+    fun connectBle(util: BluetoothUtil) {
+        val addr = bleAddr.value
+        connecting.value = true
+
+        if (addr.isNullOrBlank()) {
+            util.showPairDevice()
+            return
+        }
+
+        util.connectDevice(addr, {_ -> connecting.value = false}) {
+            connecting.value = false
+            socket.value = it
+        }
+    }
+
 }
