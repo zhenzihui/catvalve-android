@@ -1,18 +1,14 @@
 package com.feibao.catvalve.activity
 
-import android.Manifest
 import android.app.Activity
 import android.bluetooth.BluetoothDevice
 import android.companion.CompanionDeviceManager
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.os.Bundle
-import android.os.Debug
 import android.util.Log
 import android.view.View
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.feibao.catvalve.CameraValveActivity
@@ -22,7 +18,6 @@ import com.feibao.catvalve.util.BluetoothUtil
 import com.feibao.catvalve.util.DEVICE_SELECTED
 import com.feibao.catvalve.util.LocalData
 import com.feibao.catvalve.util.REQUEST_ENABLE_BT
-import java.util.logging.Logger
 
 class BtActivity : AppCompatActivity() {
 
@@ -50,10 +45,10 @@ class BtActivity : AppCompatActivity() {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
-//        btUtil.turnOnBT()
+        btUtil.turnOnBT()
         setButtons()
         bd.bindDeviceButton.setOnClickListener {
-            btUtil.pairDevice()
+            btUtil.showPairDevice()
         }
 
 
@@ -85,26 +80,22 @@ class BtActivity : AppCompatActivity() {
 
             }
         }
+
+        //选择蓝牙设备
         if(requestCode == DEVICE_SELECTED && resultCode == Activity.RESULT_OK) {
             val deviceToPair: BluetoothDevice? =
                 data?.getParcelableExtra(CompanionDeviceManager.EXTRA_DEVICE)
-            deviceToPair?.let { device ->
-                if (ActivityCompat.checkSelfPermission(
-                        this,
-                        Manifest.permission.BLUETOOTH_CONNECT
-                    ) != PackageManager.PERMISSION_GRANTED
-                ) {
 
-                    return
-                }
-                device.createBond()
-                // Continue to interact with the paired device.
-            }
+            val address = deviceToPair!!.address
+
+            btUtil.connectDevice(address)
+            setButtons()
+
         }
 
     }
     fun setButtons() {
-        if(LocalData.deviceAddr.isBlank()) {
+        if(LocalData.deviceAddr.isNullOrBlank()) {
             bd.bindDeviceButton.visibility = View.VISIBLE
             bd.startServiceButton.visibility = View.INVISIBLE
             bd.setScheduleButton.visibility = View.INVISIBLE

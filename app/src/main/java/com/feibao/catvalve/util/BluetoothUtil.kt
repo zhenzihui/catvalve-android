@@ -14,43 +14,85 @@ import android.content.IntentSender
 import android.content.pm.PackageManager
 import android.util.Log
 import androidx.core.app.ActivityCompat
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import java.util.UUID
 
 const val REQUEST_ENABLE_BT = 11
 const val DEVICE_SELECTED = 12
-val deviceFilter: BluetoothDeviceFilter = BluetoothDeviceFilter.Builder()
-    .build()
-val pairReq =  AssociationRequest.Builder().addDeviceFilter(deviceFilter).setSingleDevice(false).build()
+val deviceFilter: BluetoothDeviceFilter by lazy {
+    BluetoothDeviceFilter.Builder()
+//        .setNamePattern(Pattern.compile(LocalData.DEVICE_NAME))
+        .build()
+}
+val pairReq by lazy {
+    AssociationRequest.Builder().addDeviceFilter(deviceFilter).setSingleDevice(false).build()
+}
+
 class BluetoothUtil(private val context: Context) {
-    val manager: BluetoothManager = context.getSystemService(BluetoothManager::class.java)
-    val adapter: BluetoothAdapter? = manager.adapter
+    private val manager: BluetoothManager = context.getSystemService(BluetoothManager::class.java)
+    private val adapter: BluetoothAdapter? = manager.adapter
 
     //是否有蓝牙
     val isAvailable get() = adapter != null
 
-    fun pairDevice() {
-        val mgn = context.getSystemService(Context.COMPANION_DEVICE_SERVICE) as CompanionDeviceManager
+    fun showPairDevice() {
+        val mgn =
+            context.getSystemService(Context.COMPANION_DEVICE_SERVICE) as CompanionDeviceManager
         mgn.associate(pairReq, object : CompanionDeviceManager.Callback() {
             override fun onFailure(error: CharSequence?) {
                 "failed search bt".print()
             }
+
             override fun onDeviceFound(chooserLauncher: IntentSender) {
-                (context as Activity).startIntentSenderForResult(chooserLauncher, DEVICE_SELECTED, null, 0,0, 0)
+                (context as Activity).startIntentSenderForResult(
+                    chooserLauncher,
+                    DEVICE_SELECTED,
+                    null,
+                    0,
+                    0,
+                    0
+                )
             }
 
         }, null)
     }
+
+    @SuppressLint("MissingPermission")
+    fun connectDevice(address: String) {
+        val btDevice = adapter!!.getRemoteDevice(address)
+//        if(!isBluetoothPermitted) {
+//            return
+//        }
+        val socket = btDevice.createRfcommSocketToServiceRecord(LocalData.sppUUID)
+
+        CoroutineScope(Dispatchers.IO)
+            .launch {
+                socket.connect()
+
+                val ips = socket.inputStream
+                val ops = socket.outputStream
+
+                ops.write(byteArrayOf('1'.code.toByte()))
+
+
+            }
+
+
+    }
+
     @SuppressLint("MissingPermission")
     fun turnOnBT() {
-        if (adapter?.isEnabled != true) {
-            val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
-
-            if (isBluetoothPermitted) {
+        if (isBluetoothPermitted) {
+            if (adapter?.isEnabled != true) {
+                val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
                 (context as Activity).startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT)
-
-            } else {
-                requestForBt()
             }
+        } else {
+            requestForBt()
         }
+
     }
 
     private val isBluetoothPermitted
@@ -70,8 +112,9 @@ class BluetoothUtil(private val context: Context) {
         )
     }
 
+
+}
+private fun String.print() {
+    Log.d("BT", this)
 }
 
-private fun String.print() {
-   Log.d("BT", this)
-}
