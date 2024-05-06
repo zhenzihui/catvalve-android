@@ -18,7 +18,16 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toTopOf="@id/set_schedule_button"
         app:layout_constraintVertical_bias="0.2" />
-
+    <Button
+        android:id="@+id/bind_device_button"
+        android:text="@string/bind_device"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/start_service_button"
+        />
     <Button
         android:id="@+id/set_schedule_button"
         android:layout_width="wrap_content"

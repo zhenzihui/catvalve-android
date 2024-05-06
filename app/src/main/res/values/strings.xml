@@ -4,4 +4,5 @@
     <string name="start_service">开始监控</string>
     <string name="set_schedule">设置定时</string>
     <string name="bluetooth_error">蓝牙功能异常</string>
+    <string name="bind_device">绑定设备</string>
 </resources>
