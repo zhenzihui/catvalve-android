@@ -15,21 +15,24 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.lifecycleScope
 import com.feibao.catvalve.CameraValveActivity
 import com.feibao.catvalve.R
 import com.feibao.catvalve.databinding.ActivityBtBinding
-import com.feibao.catvalve.util.BluetoothUtil
 import com.feibao.catvalve.util.DEVICE_SELECTED
+import com.feibao.catvalve.util.DeviceUtil
 import com.feibao.catvalve.util.LocalData
 import com.feibao.catvalve.util.REQUEST_ENABLE_BT
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class BtActivity : AppCompatActivity() {
 
     private var _bd: ActivityBtBinding? = null
     val bd get() = _bd!!
 
-    private var _btUtil: BluetoothUtil? = null
-    private val btUtil get() = _btUtil!!
+    val btUtil = DeviceUtil.deviceHelper
+
 
     val vm: BtViewModel by viewModels()
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -45,27 +48,25 @@ class BtActivity : AppCompatActivity() {
                     startActivity(this)
                 }
         }
-        _btUtil = BluetoothUtil(this)
         setContentView(bd.root)
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
-        btUtil.turnOnBT()
+        DeviceUtil.turnOnBT(this)
         setButtons()
         bd.bindDeviceButton.setOnClickListener {
             if(vm.bleAddr.value.isNullOrBlank()) {
-                btUtil.showPairDevice()
+                DeviceUtil.showNearbyDevices(this)
             } else {
-                btUtil.connectDevice(LocalData.deviceAddr!! ) {
-                    vm.socket.value = it
-                    vm.bleAddr.value = LocalData.deviceAddr
-                }
+                    DeviceUtil.connectDevice(LocalData.deviceAddr!!)
             }
         }
         //尝试链接蓝牙
-        vm.connectBle(btUtil)
+        LocalData.deviceAddr?.let {
+            DeviceUtil.connectDevice(it)
+        }
 
 
 
@@ -79,7 +80,7 @@ class BtActivity : AppCompatActivity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
 
         if (requestCode == REQUEST_ENABLE_BT) {
-            btUtil.turnOnBT()
+            DeviceUtil.turnOnBT(this)
         }
     }
 
@@ -105,7 +106,7 @@ class BtActivity : AppCompatActivity() {
             val address = deviceToPair!!.address
             LocalData.deviceAddr = address
             vm.bleAddr.value = address
-            vm.connectBle(btUtil)
+            DeviceUtil.connectDevice(address)
 
         }
 
@@ -129,26 +130,10 @@ class BtActivity : AppCompatActivity() {
 
 
 class BtViewModel: ViewModel() {
-    //连接中
-    val connecting = MutableLiveData<Boolean>().apply { value=false }
 
     val socket = MutableLiveData<BluetoothSocket>().apply { value=null }
     val bleAddr = MutableLiveData<String>().apply { value=LocalData.deviceAddr }
 
 
-    fun connectBle(util: BluetoothUtil) {
-        val addr = bleAddr.value
-        connecting.value = true
-
-        if (addr.isNullOrBlank()) {
-            util.showPairDevice()
-            return
-        }
-
-        util.connectDevice(addr, {_ -> connecting.value = false}) {
-            connecting.value = false
-            socket.value = it
-        }
-    }
 
 }

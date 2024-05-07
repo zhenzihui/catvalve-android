@@ -1,7 +1,9 @@
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.jetbrainsKotlinAndroid)
+    kotlin("kapt")
 }
+
 
 android {
     namespace = "com.feibao.catvalve"
@@ -37,7 +39,11 @@ android {
         viewBinding = true
     }
 }
-
+kapt {
+    arguments {
+        arg("eventBusIndex", "com.have.a.good.MyEventBusAppIndex")
+    }
+}
 dependencies {
     val camerax_version = "1.1.0-beta01"
 //    implementation(files("libs/yolo_mobile_release_20230916_v1.0.2r3.aar"))
@@ -46,11 +52,11 @@ dependencies {
     implementation(libs.material)
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
+    kapt("org.greenrobot:eventbus-annotation-processor:3.3.1")
     implementation("androidx.camera:camera-core:${camerax_version}")
     implementation("androidx.camera:camera-camera2:${camerax_version}")
     implementation("androidx.camera:camera-lifecycle:${camerax_version}")
     implementation("androidx.camera:camera-video:${camerax_version}")
-
     implementation("androidx.camera:camera-view:${camerax_version}")
     implementation("androidx.camera:camera-extensions:${camerax_version}")
     implementation("com.google.mlkit:image-labeling:17.0.8")
@@ -58,6 +64,8 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.7.0")
     implementation("androidx.activity:activity-ktx")
     implementation("com.tencent:mmkv:1.3.5")
+    implementation("org.greenrobot:eventbus:3.3.1")
+    implementation("androidx.work:work-runtime-ktx:2.7.1")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
