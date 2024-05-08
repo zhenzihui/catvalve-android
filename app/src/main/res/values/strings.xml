@@ -5,4 +5,8 @@
     <string name="set_schedule">设置定时</string>
     <string name="bluetooth_error">蓝牙功能异常</string>
     <string name="bind_device">绑定设备</string>
+    <string name="conn_unpair">未绑定</string>
+    <string name="conn_checking">连接中</string>
+    <string name="conn_connected">已连接</string>
+    <string name="conn_disconnected">已断开</string>
 </resources>

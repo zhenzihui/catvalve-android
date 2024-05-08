@@ -19,7 +19,9 @@ import androidx.lifecycle.lifecycleScope
 import com.feibao.catvalve.CameraValveActivity
 import com.feibao.catvalve.R
 import com.feibao.catvalve.databinding.ActivityBtBinding
+import com.feibao.catvalve.util.ConnStatus
 import com.feibao.catvalve.util.DEVICE_SELECTED
+import com.feibao.catvalve.util.DeviceListener
 import com.feibao.catvalve.util.DeviceUtil
 import com.feibao.catvalve.util.LocalData
 import com.feibao.catvalve.util.REQUEST_ENABLE_BT
@@ -56,18 +58,21 @@ class BtActivity : AppCompatActivity() {
         }
         DeviceUtil.turnOnBT(this)
         setButtons()
+        vm.connStatus.observe(this) {
+            bd.connStateText.setText(it.desc)
+        }
+
         bd.bindDeviceButton.setOnClickListener {
-            if(vm.bleAddr.value.isNullOrBlank()) {
+            if (vm.connStatus.value==ConnStatus.UNPAIRED) {
                 DeviceUtil.showNearbyDevices(this)
             } else {
-                    DeviceUtil.connectDevice(LocalData.deviceAddr!!)
+                DeviceUtil.connectDevice(LocalData.deviceAddr!!)
             }
         }
         //尝试链接蓝牙
         LocalData.deviceAddr?.let {
             DeviceUtil.connectDevice(it)
         }
-
 
 
     }
@@ -99,28 +104,38 @@ class BtActivity : AppCompatActivity() {
         }
 
         //选择蓝牙设备
-        if(requestCode == DEVICE_SELECTED && resultCode == Activity.RESULT_OK) {
+        if (requestCode == DEVICE_SELECTED && resultCode == Activity.RESULT_OK) {
             val deviceToPair: BluetoothDevice? =
                 data?.getParcelableExtra(CompanionDeviceManager.EXTRA_DEVICE)
 
             val address = deviceToPair!!.address
             LocalData.deviceAddr = address
-            vm.bleAddr.value = address
             DeviceUtil.connectDevice(address)
 
         }
 
     }
+
     fun setButtons() {
-        vm.socket.observe(this) {
-            if(it == null || !it.isConnected) {
-                bd.bindDeviceButton.visibility = View.VISIBLE
-                bd.startServiceButton.visibility = View.INVISIBLE
-                bd.setScheduleButton.visibility = View.INVISIBLE
-            } else {
-                bd.bindDeviceButton.visibility = View.INVISIBLE
-                bd.startServiceButton.visibility = View.VISIBLE
-                bd.setScheduleButton.visibility = View.VISIBLE
+        vm.connStatus.observe(this) {
+            when (it) {
+
+
+                ConnStatus.CONNECTED -> {
+                    bd.bindDeviceButton.visibility = View.INVISIBLE
+                    bd.startServiceButton.visibility = View.VISIBLE
+                    bd.setScheduleButton.visibility = View.VISIBLE
+                }
+                ConnStatus.UNPAIRED -> {
+                    bd.bindDeviceButton.visibility = View.VISIBLE
+                    bd.startServiceButton.visibility = View.INVISIBLE
+                    bd.setScheduleButton.visibility = View.INVISIBLE
+                }
+               else -> {
+                    bd.bindDeviceButton.visibility = View.INVISIBLE
+                    bd.startServiceButton.visibility = View.INVISIBLE
+                    bd.setScheduleButton.visibility = View.INVISIBLE
+                }
             }
         }
 
@@ -129,11 +144,21 @@ class BtActivity : AppCompatActivity() {
 }
 
 
-class BtViewModel: ViewModel() {
+class BtViewModel : ViewModel() {
 
-    val socket = MutableLiveData<BluetoothSocket>().apply { value=null }
-    val bleAddr = MutableLiveData<String>().apply { value=LocalData.deviceAddr }
+    init {
+        DeviceUtil.deviceHelper.deviceListener = object : DeviceListener {
+            override fun onConnStatusChanged(it: ConnStatus) {
+                connStatus.value = it
+            }
 
+        }
+
+    }
+
+
+
+    val connStatus = MutableLiveData<ConnStatus>().apply { value = ConnStatus.CHECKING }
 
 
 }

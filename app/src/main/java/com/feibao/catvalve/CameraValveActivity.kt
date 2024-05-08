@@ -45,6 +45,7 @@ class CameraValveActivity : AppCompatActivity() {
 
         _ia = AnalyzerUtil(this).initAnalysis {
 
+
         }
 
         _cs = CameraUtil(this, binding.cameraPreview, imageAnalysis)

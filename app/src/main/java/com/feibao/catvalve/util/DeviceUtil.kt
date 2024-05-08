@@ -15,17 +15,22 @@ import android.content.IntentSender
 import android.content.pm.PackageManager
 import android.util.Log
 import androidx.core.app.ActivityCompat
+import com.feibao.catvalve.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.IOException
+
 const val REQUEST_ENABLE_BT = 11
 const val DEVICE_SELECTED = 12
 
-enum class ConnStatus {
-    UNPAIRED, CONNECTED, DISCONNECTED, CHECKING
+enum class ConnStatus(val desc: Int) {
+    UNPAIRED(R.string.conn_unpair), CONNECTED(R.string.conn_connected), DISCONNECTED(R.string.conn_disconnected), CHECKING(
+        R.string.conn_checking
+    )
 }
+
 val deviceFilter: BluetoothDeviceFilter by lazy {
     BluetoothDeviceFilter.Builder()
 //        .setNamePattern(Pattern.compile(LocalData.DEVICE_NAME))
@@ -34,6 +39,7 @@ val deviceFilter: BluetoothDeviceFilter by lazy {
 val pairReq by lazy {
     AssociationRequest.Builder().addDeviceFilter(deviceFilter).setSingleDevice(false).build()
 }
+
 class DeviceUtil {
 
 
@@ -49,6 +55,7 @@ class DeviceUtil {
                 REQUEST_ENABLE_BT
             )
         }
+
         fun showNearbyDevices(context: Context) {
             val mgn =
                 context.getSystemService(Context.COMPANION_DEVICE_SERVICE) as CompanionDeviceManager
@@ -98,12 +105,15 @@ class DeviceUtil {
             CoroutineScope(Dispatchers.IO).launch {
                 deviceHelper.socket = btDevice.createRfcommSocketToServiceRecord(LocalData.sppUUID)
                     .apply {
-                        connect()
+                        runCatching {
+                            connect()
+                        }.onFailure {
+                            deviceHelper.connectionStatus = ConnStatus.DISCONNECTED
+                        }
                     }
             }
 
         }
-
 
 
         @Synchronized
@@ -131,9 +141,15 @@ class DeviceHelper(manager: BluetoothManager) {
     }
 
     init {
+
         CoroutineScope(Dispatchers.IO).launch {
             while (true) {
-                if (socket?.isConnected != true && socket != null && connectionStatus != ConnStatus.DISCONNECTED) {
+                if(LocalData.deviceAddr.isNullOrBlank()) {
+                    connectionStatus = ConnStatus.UNPAIRED
+                }
+                "bond state: ${socket?.remoteDevice?.bondState}".print()
+
+                if (socket?.isConnected != true) {
                     connectionStatus = ConnStatus.DISCONNECTED
                 }
                 if (socket?.isConnected == true && connectionStatus != ConnStatus.CONNECTED) {
@@ -143,10 +159,16 @@ class DeviceHelper(manager: BluetoothManager) {
                 "current status: $connectionStatus".print()
                 callStatusChange()
 
-                if(socket?.isConnected != true) {
-                    socket?.connect()
+                if (socket?.isConnected != true) {
+                    runCatching {
+
+                        socket?.connect()
+                    }.onFailure {
+                        connectionStatus = ConnStatus.DISCONNECTED
+                    }
                 }
                 Thread.sleep(5000)
+
             }
         }
     }
