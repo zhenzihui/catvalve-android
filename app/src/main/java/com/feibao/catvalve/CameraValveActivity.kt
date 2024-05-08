@@ -15,6 +15,9 @@ import androidx.lifecycle.ViewModel
 import com.feibao.catvalve.databinding.ActivityValveBinding
 import com.feibao.catvalve.util.AnalyzerUtil
 import com.feibao.catvalve.util.CameraUtil
+import com.feibao.catvalve.util.DeviceUtil
+import com.feibao.catvalve.util.INDEX_CAT
+import com.feibao.catvalve.util.print
 
 class CameraValveActivity : AppCompatActivity() {
     var _binding: ActivityValveBinding? = null
@@ -43,9 +46,12 @@ class CameraValveActivity : AppCompatActivity() {
             insets
         }
 
-        _ia = AnalyzerUtil(this).initAnalysis {
-
-
+        _ia = AnalyzerUtil(this).initAnalysis { labels ->
+            // open valve
+            if(labels.any { e -> e.index== INDEX_CAT && e.confidence>0.5 }) {
+                "detected cat".print()
+                DeviceUtil.openValve()
+            }
         }
 
         _cs = CameraUtil(this, binding.cameraPreview, imageAnalysis)

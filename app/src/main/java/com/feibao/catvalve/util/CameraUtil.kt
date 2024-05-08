@@ -11,6 +11,8 @@ import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import com.google.mlkit.vision.label.ImageLabel
 
+const val INDEX_CAT=118
+
 class AnalyzerUtil(private val context: Context) {
 
     private var _ia: ImageAnalysis? = null
@@ -25,10 +27,9 @@ class AnalyzerUtil(private val context: Context) {
             .build()
             .apply {
                 setAnalyzer(executor) {
-                    it.image?.findLabels { labels ->
+                    it.image?.findLabels(onComplete = {it.close()}) { labels ->
                         detectRes.invoke(labels)
                     }
-                    it.close()
                 }
             }
     }

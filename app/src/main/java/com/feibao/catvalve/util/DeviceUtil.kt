@@ -25,11 +25,15 @@ import java.io.IOException
 const val REQUEST_ENABLE_BT = 11
 const val DEVICE_SELECTED = 12
 
+const val CODE_OPEN_VALVE = '1'
+
 enum class ConnStatus(val desc: Int) {
     UNPAIRED(R.string.conn_unpair), CONNECTED(R.string.conn_connected), DISCONNECTED(R.string.conn_disconnected), CHECKING(
         R.string.conn_checking
     )
 }
+
+val now get() = System.currentTimeMillis()
 
 val deviceFilter: BluetoothDeviceFilter by lazy {
     BluetoothDeviceFilter.Builder()
@@ -46,6 +50,8 @@ class DeviceUtil {
     companion object {
         private var _dh: DeviceHelper? = null
         val deviceHelper get() = _dh!!
+
+        var lastOpenValveTime = 0L
 
         // 申请蓝牙权限
         private fun requestBTPermission(ac: Activity) {
@@ -116,6 +122,26 @@ class DeviceUtil {
         }
 
 
+        fun openValve() {
+            if(now - lastOpenValveTime > 1000*10) {
+                lastOpenValveTime = now
+                sendMsg(byteArrayOf(CODE_OPEN_VALVE.code.toByte()))
+            }
+        }
+
+        fun sendMsg(byteArray: ByteArray) {
+            "sending air mail! $byteArray".print()
+            CoroutineScope(Dispatchers.IO).launch {
+                runCatching {
+                    deviceHelper.socket?.outputStream?.write(byteArray)
+                }.onFailure {
+                    "error send bt message: $it".print()
+                }
+            }
+
+        }
+
+
         @Synchronized
         fun initialize(context: Context) {
             if (_dh != null) {
@@ -144,7 +170,7 @@ class DeviceHelper(manager: BluetoothManager) {
 
         CoroutineScope(Dispatchers.IO).launch {
             while (true) {
-                if(LocalData.deviceAddr.isNullOrBlank()) {
+                if (LocalData.deviceAddr.isNullOrBlank()) {
                     connectionStatus = ConnStatus.UNPAIRED
                 }
                 "bond state: ${socket?.remoteDevice?.bondState}".print()
@@ -176,6 +202,7 @@ class DeviceHelper(manager: BluetoothManager) {
 
 interface DeviceListener {
     fun onConnStatusChanged(connStatus: ConnStatus)
+
 
 }
 

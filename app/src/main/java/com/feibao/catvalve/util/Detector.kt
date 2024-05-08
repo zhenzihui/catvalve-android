@@ -12,6 +12,7 @@ val imgLabeler by lazy {
 
 
 fun Image.findLabels(
+    onComplete: () -> Unit,
     onFailure: ((e: Exception) -> Unit)? = null,
     onRes: (List<ImageLabel>) -> Unit
 ) {
@@ -20,6 +21,10 @@ fun Image.findLabels(
             onRes.invoke(it)
         }
         .addOnFailureListener {
+            "find labels failed! $it".print()
             onFailure?.invoke(it)
+        }
+        .addOnCompleteListener {
+            onComplete.invoke()
         }
 }
