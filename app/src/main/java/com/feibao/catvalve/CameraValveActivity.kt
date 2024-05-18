@@ -48,7 +48,7 @@ class CameraValveActivity : AppCompatActivity() {
 
         _ia = AnalyzerUtil(this).initAnalysis { labels ->
             // open valve
-            if(labels.any { e -> e.index== INDEX_CAT && e.confidence>0.5 }) {
+            if(labels.any { e -> e.index== INDEX_CAT && e.confidence>0.9 }) {
                 "detected cat".print()
                 DeviceUtil.openValve()
             }
