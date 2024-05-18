@@ -172,15 +172,15 @@ class DeviceHelper(manager: BluetoothManager) {
             while (true) {
                 if (LocalData.deviceAddr.isNullOrBlank()) {
                     connectionStatus = ConnStatus.UNPAIRED
-                }
-                "bond state: ${socket?.remoteDevice?.bondState}".print()
+                } else
 
                 if (socket?.isConnected != true) {
                     connectionStatus = ConnStatus.DISCONNECTED
-                }
+                } else
                 if (socket?.isConnected == true && connectionStatus != ConnStatus.CONNECTED) {
                     connectionStatus = ConnStatus.CONNECTED
                 }
+                "bond state: ${socket?.remoteDevice?.bondState}".print()
 
                 "current status: $connectionStatus".print()
                 callStatusChange()
